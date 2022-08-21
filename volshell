@@ -1,0 +1,26 @@
+
+volshell实战
+实战中如果遇到如下情况：若一个程序在运行时将某段重要数据存放在data段中，而内存镜像中又刚好存在相应的进程，可通过逆向+volshell的方式，获取到该重要数据。
+FIC2021之flag18
+IDA分析发现：程序将flag使用curl从http://www.fic2021.com/flag18中获取后，放入v9中，又似乎从v9复制到v13中（需要用OD进行验证），再将数据放入data段的0x461540中。
+通过od动态调试后发现，字符串的地址确实被放入了data段的0x461540中。
+使用volatility对镜像进行分析。
+python vol.py -f xxx windows.pslist    //枚举进程列表
+导出后发现GetFlag.exe的PID为3504，位于第103行，也就是数组中的[102]。
+使用volshell.py对镜像进行分析：
+python volshell.py -f xxx -w    //-w参数含义为windows内存镜像
+查看帮助：
+(primary) >>> hh()
+对PID为3504的进程进行分析：
+(primary) >>> cp(3504)
+查看PID为3504的进程所有文件的名称和在内存中加载的位置：
+(primary_Process3504) >>> for entry in ps()[102].load_order_modules():
+...   print(entry.BaseDllName.get_string(),hex(entry.DllBase))
+...
+发现GetFlag.exe在内存中加载的位置为0x11d0000。
+计算偏移并查看字符串的地址：
+(primary_Process3504) >>> dd(0x11d0000+0x461540-0x400000)
+发现字符串的地址为0x0168f878。
+通过地址查看字符串：
+(primary_Process3504) >>> db(0x168f878)
+发现flag18为W96SCUKV。
