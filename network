@@ -1,0 +1,3 @@
+systemctl stop NetworkManager 
+systemctl disable NetworkManager
+systemctl restart network
